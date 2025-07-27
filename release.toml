@@ -1,0 +1,8 @@
+shell = ["cargo build --release","cargo build --release --target x86_64-pc-windows-gnu","./pak res"]
+
+[[targets]]
+name = "linux"
+path = ["./target/release/mashroom","./main.pak"]
+[[targets]]
+name = "windows"
+path = ["./target/x86_64-pc-windows-gnu/release/mashroom.exe","./main.pak"]
