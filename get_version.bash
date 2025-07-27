@@ -10,6 +10,6 @@ if [ -z "$GIT_DESCRIBE" ]; then
 fi
 
 # 将版本信息写入 VERSION 文件
-echo "$GIT_DESCRIBE" > VERSION
+echo -n "$GIT_DESCRIBE" > VERSION
 
 echo "版本信息已写入 VERSION 文件: $GIT_DESCRIBE"
