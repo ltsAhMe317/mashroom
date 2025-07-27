@@ -12,9 +12,8 @@ pub static RES:LazyLock<main_pak::Pak> = LazyLock::new(||{
 
 
 fn main() {
-    let mut window = Window::new(800, 600, "Mashroom GO!", false);
+    let mut window = Window::new(800, 600, &format!("Mashroom GO! {}",include_str!("../VERSION")), false);
     window.window.show();
-
-    while true{}
+    while !window.update(){}
 }
 

@@ -1,4 +1,4 @@
-shell = ["cargo build --release","cargo build --release --target x86_64-pc-windows-gnu","./pak res"]
+shell = ["./get_version.bash","cargo build --release","cargo build --release --target x86_64-pc-windows-gnu","./pak res"]
 
 [[targets]]
 name = "linux"
