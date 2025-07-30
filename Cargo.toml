@@ -3,8 +3,15 @@ name = "mashroom"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "main"
+path = "src/main.rs"
+[[bin]]
+name = "editor"
+path = "src/bin/editor.rs"
+
 [dependencies]
 gl-tools = {path="../gl-tools"}
 main_pak = {path="../main_pak"}
-
-
+json = "*"
+dialog = "*"
