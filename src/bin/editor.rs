@@ -1,15 +1,13 @@
-use std::{cell::RefCell, fs, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 use dialog::DialogBox;
 use gl_tools::{
-    draws::{Camera, Camera3D, vec_from_rad},
-    gl_unit::{GLcontext, window::Window},
+    draws::{vec_from_rad, Camera, Camera3D},
+    gl_unit::{window::Window, GLcontext},
     glam::Mat4,
     glfw,
     ui::{
-        Frame,
-        layout::{FloatLayout, LayoutPos, ListLayout},
-        object::{UIbutton, UItext, rc_refcell},
+        layout::{BoundLayout, FloatLayout, LayoutPos, ListLayout, WindowLayout}, object::{rc_refcell, UIbutton, UItext}, Frame, KeyStream
     },
 };
 use mashroom::{HitMode, Object, Room, ToolBar};
@@ -70,20 +68,23 @@ fn main() {
         });
     }
     let mut edit_frame = Frame::new();
-    edit_frame.add(ToolBar::new());
-    let mut camera_mode = false;
+    edit_frame.add(ToolBar::new(&room));
+
+  edit_frame.add({
+        let text = UItext{ text_color: (1f32,1f32,1f32,1f32), pos: (0f32,0f32), size: 30, text:rc_refcell("frame here".to_string()) };
+        let mut bound = BoundLayout{ pos: (0f32,0f32), bound: HashMap::new(), obj: text };
+        bound.add_bound(LayoutPos::Round, 30f32);
+        let window = WindowLayout::new((0f32,0f32), "create object", 30, bound);
+        window
+    });
+
+    
+      let mut camera_mode = false;
     let mut camera_mode_frame = Frame::new();
     let mut group = ListLayout::new(LayoutPos::Bottom, 20f32, (0f32, 0f32));
     let camera_x = rc_refcell(String::new());
     let camera_y = rc_refcell(String::new());
     let camera_z = rc_refcell(String::new());
-
-    group.add(UItext {
-        text_color: (1f32, 1f32, 1f32, 1f32),
-        pos: (0f32, 0f32),
-        size: 25i32,
-        text: Rc::new(RefCell::new("Camera mode".to_string())),
-    });
     group.add(UItext {
         text_color: (1f32, 1f32, 1f32, 1f32),
         pos: (0f32, 0f32),
@@ -104,16 +105,18 @@ fn main() {
     });
 
     camera_mode_frame.add({
-        let mut float = FloatLayout::new(group, (LayoutPos::Left, LayoutPos::Top));
-        float.add_bound(LayoutPos::Top, 100f32);
-        float
+        let mut bound = BoundLayout{ pos: (0f32,0f32), bound: HashMap::new(), obj: group };
+        bound.add_bound(LayoutPos::Round, 20f32);
+        let window = WindowLayout::new((-300f32,0f32), "Camera", 25, bound);
+        window
     });
+    let mut key_stream = KeyStream::new();
     while !window.update() {
         context.draw_option(&mut window, |_, window| {
             let now_mode = *action.borrow();
             match now_mode {
                 Action::Start => {
-                    start_frame.draw(window);
+                    start_frame.draw(window,&mut key_stream);
                 }
                 Action::Edit => {
                     if camera_mode {
@@ -159,12 +162,12 @@ fn main() {
                         camera.look_rad(look.1.to_radians(), look.0.to_radians());
                     }
                     room.borrow().as_ref().unwrap().draw(camera.as_mat());
-                    edit_frame.draw(window);
+                    edit_frame.draw(window,&mut key_stream);
                     if camera_mode {
                         *camera_x.borrow_mut() = format!("x:{}", camera.location.x);
                         *camera_y.borrow_mut() = format!("y:{}", camera.location.y);
                         *camera_z.borrow_mut() = format!("z:{}", camera.location.z);
-                        camera_mode_frame.draw(window);
+                        camera_mode_frame.draw(window,&mut key_stream);
                     }
 
                     if window.get_char('c') {
@@ -173,5 +176,6 @@ fn main() {
                 }
             }
         });
+        key_stream.rewind(); 
     }
 }

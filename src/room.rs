@@ -5,15 +5,16 @@ use crate::{ Entity, Object};
 
 
 
-
 pub struct Room{
     pub entity:Vec<Box<dyn Entity>>,
     pub object:Vec<Object>            
 }
-impl Into<JsonValue> for Room{
-    fn into(self) -> JsonValue {
+impl Room{
+    pub fn as_json(&self) -> JsonValue {
         let entity_list:Vec<JsonValue> = self.entity.iter().map(|monster|{monster.as_json()}).collect();
-        object! {object:self.object,entity:entity_list}
+        let object_list:Vec<JsonValue> = self.object.iter().map(|object|{object.clone().into()}).collect();
+
+        object! {object:object_list,entity:entity_list}
     }
 }
 impl Room{
