@@ -1,16 +1,20 @@
-use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
+// #![cfg_attr(all(target_os="windows",not(debug_assertions)),windows_subsystem = "windows")]
 
-use dialog::DialogBox;
 use gl_tools::{
-    draws::{vec_from_rad, Camera, Camera3D},
-    gl_unit::{window::Window, GLcontext},
-    glam::Mat4,
-    glfw,
+    draws::{Camera, Camera3D, vec_from_rad},
+    gl_unit::{self, GLcontext, window::Window},
+    glfw::{self, Key},
     ui::{
-        layout::{BoundLayout, FloatLayout, LayoutPos, ListLayout, WindowLayout}, object::{rc_refcell, UIbutton, UItext}, Frame, KeyStream
+        Frame, KeyStream,
+        layout::{BoundLayout, LayoutPos, ListLayout, WindowLayout},
+        object::{UIbutton, UItext, rc_refcell},
     },
 };
-use mashroom::{HitMode, Object, Room, ToolBar};
+use mashroom::{HitMode, Object, Room};
+use rfd::FileDialog;
+use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
+pub mod editor_ui;
+use editor_ui::ToolBar;
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -19,8 +23,11 @@ enum Action {
 }
 fn main() {
     let mut window = Window::new(1920, 1080, "room editor", false);
-    window.window.show();
+    
     let mut context = GLcontext::with(&mut window);
+    mashroom::RES.model.is_empty();
+    window.window.show();
+    
     let mut look: (f32, f32) = (0f32, 0f32);
     let mut camera = Camera3D::new(&window);
     // camera.location = vec3(0f32, 5f32, 0f32);
@@ -32,15 +39,15 @@ fn main() {
         let action = action.clone();
         start_frame.add(UIbutton {
             text: UItext {
-                text_color: (1f32, 1f32, 1f32, 1f32),
+                color: (1f32, 1f32, 1f32, 1f32),
                 pos: (-200f32, 0f32),
-                size: 25i32,
+                text_size: 25i32,
                 text: rc_refcell("Choose File".to_string()),
             },
             action: Box::new(move || {
                 *action.borrow_mut() = Action::Edit;
-                let panel = dialog::FileSelection::new("select a file");
-                let path = panel.show().unwrap().unwrap();
+                let panel = FileDialog::new();
+                let path = panel.pick_file().unwrap();
                 *room.borrow_mut() = Some(Room::from_json(
                     json::parse(&fs::read_to_string(path).unwrap()).unwrap(),
                 ))
@@ -52,62 +59,57 @@ fn main() {
         let room = room.clone();
         let action = action.clone();
         start_frame.add(UIbutton {
-            text: UItext {
-                text_color: (1f32, 1f32, 1f32, 1f32),
-                pos: (200f32, 0f32),
-                size: 25i32,
-                text: rc_refcell("New".to_string()),
-            },
+            text: UItext::new("new").pos((200f32, 0f32)),
             action: Box::new(move || {
                 *action.borrow_mut() = Action::Edit;
-                let mut room_tmp = Room::new();
-                room_tmp.object.push(Object::new("cao.glb", HitMode::Model));
+                let room_tmp = Room::new();
+                // room_tmp.object.push(Object::new("cao.glb", HitMode::Model));
                 *room.borrow_mut() = Some(room_tmp);
             }),
             check_click: false,
         });
     }
     let mut edit_frame = Frame::new();
-    edit_frame.add(ToolBar::new(&room));
+    let (obj, update_key) = ToolBar::new(&room);
+    edit_frame.add(obj);
+    let new_object = editor_ui::new_object(room.clone());
+    edit_frame.add(new_object);
+    let new_entity = editor_ui::new_entity(room.clone());
+    edit_frame.add(new_entity);
 
-  edit_frame.add({
-        let text = UItext{ text_color: (1f32,1f32,1f32,1f32), pos: (0f32,0f32), size: 30, text:rc_refcell("frame here".to_string()) };
-        let mut bound = BoundLayout{ pos: (0f32,0f32), bound: HashMap::new(), obj: text };
-        bound.add_bound(LayoutPos::Round, 30f32);
-        let window = WindowLayout::new((0f32,0f32), "create object", 30, bound);
-        window
-    });
-
-    
-      let mut camera_mode = false;
+    let mut camera_mode = false;
     let mut camera_mode_frame = Frame::new();
     let mut group = ListLayout::new(LayoutPos::Bottom, 20f32, (0f32, 0f32));
     let camera_x = rc_refcell(String::new());
     let camera_y = rc_refcell(String::new());
     let camera_z = rc_refcell(String::new());
     group.add(UItext {
-        text_color: (1f32, 1f32, 1f32, 1f32),
+        color: (1f32, 1f32, 1f32, 1f32),
         pos: (0f32, 0f32),
-        size: 25i32,
+        text_size: 25i32,
         text: camera_x.clone(),
     });
     group.add(UItext {
-        text_color: (1f32, 1f32, 1f32, 1f32),
+        color: (1f32, 1f32, 1f32, 1f32),
         pos: (0f32, 0f32),
-        size: 25i32,
+        text_size: 25i32,
         text: camera_y.clone(),
     });
     group.add(UItext {
-        text_color: (1f32, 1f32, 1f32, 1f32),
+        color: (1f32, 1f32, 1f32, 1f32),
         pos: (0f32, 0f32),
-        size: 25i32,
+        text_size: 25i32,
         text: camera_z.clone(),
     });
 
     camera_mode_frame.add({
-        let mut bound = BoundLayout{ pos: (0f32,0f32), bound: HashMap::new(), obj: group };
+        let mut bound = BoundLayout {
+            pos: (0f32, 0f32),
+            bound: HashMap::new(),
+            obj: group,
+        };
         bound.add_bound(LayoutPos::Round, 20f32);
-        let window = WindowLayout::new((-300f32,0f32), "Camera", 25, bound);
+        let window = WindowLayout::new((-300f32, 0f32), "Camera", 25, bound);
         window
     });
     let mut key_stream = KeyStream::new();
@@ -116,10 +118,23 @@ fn main() {
             let now_mode = *action.borrow();
             match now_mode {
                 Action::Start => {
-                    start_frame.draw(window,&mut key_stream);
+                    start_frame.draw(window);
+                    start_frame.update(window, &mut key_stream);
                 }
                 Action::Edit => {
+                    gl_unit::depth_test(true);
+                    if *update_key.borrow() {
+                        room.borrow_mut().as_mut().unwrap().update(window);
+                    }
+                    room.borrow()
+                        .as_ref()
+                        .unwrap()
+                        .draw(window, camera.as_mat());
+                    gl_unit::depth_test(false);
+
+                    edit_frame.update(window, &mut key_stream);
                     if camera_mode {
+                        camera_mode_frame.update(window, &mut key_stream);
                         let look_vec = vec_from_rad(0f32, look.0.to_radians())
                             * window.delta_count.delta as f32;
                         let look_vec_yaw = vec_from_rad(0f32, (look.0 - 90f32).to_radians())
@@ -160,22 +175,18 @@ fn main() {
                         look.1 = look.1.max(-80f32).min(80f32);
                         look.0 = look.0 % 360f32;
                         camera.look_rad(look.1.to_radians(), look.0.to_radians());
-                    }
-                    room.borrow().as_ref().unwrap().draw(camera.as_mat());
-                    edit_frame.draw(window,&mut key_stream);
-                    if camera_mode {
                         *camera_x.borrow_mut() = format!("x:{}", camera.location.x);
                         *camera_y.borrow_mut() = format!("y:{}", camera.location.y);
                         *camera_z.borrow_mut() = format!("z:{}", camera.location.z);
-                        camera_mode_frame.draw(window,&mut key_stream);
+                        camera_mode_frame.draw(window);
                     }
-
+                    edit_frame.draw(window);
                     if window.get_char('c') {
                         camera_mode = !camera_mode;
                     }
                 }
             }
         });
-        key_stream.rewind(); 
+        key_stream.rewind();
     }
 }

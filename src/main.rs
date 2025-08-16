@@ -1,3 +1,4 @@
+#![cfg_attr(all(target_os="windows",not(debug_assertions)),windows_subsystem = "windows")]
 use std::sync::LazyLock;
 
 use gl_tools::{ gl_unit::{window::Window, GLcontext}};

@@ -8,10 +8,20 @@ name = "main"
 path = "src/main.rs"
 [[bin]]
 name = "editor"
-path = "src/bin/editor.rs"
+path = "src/editor/editor.rs"
 
 [dependencies]
 gl-tools = {path="../gl-tools"}
 main_pak = {path="../main_pak"}
 json = "*"
-dialog = "*"
+rfd = "*"
+
+
+[profile.release]
+strip=true
+opt-level="z"
+lto =true
+codegen-units = 1
+panic = "abort"
+
+
